@@ -1,9 +1,13 @@
 #include <ESP32Servo.h>
 #include <Ps3Controller.h>
+#include "driver/ledc.h"
+
 
 // === Servo Setup ===
-static const int servoPin = 13;
+static const int servoPin1 = 13;
+static const int servoPin2 = 12;
 Servo servo1;
+Servo servo2;
 
 // === Motor L298N Setup ===
 int motor1Pin1 = 27;
@@ -20,57 +24,20 @@ int player = 0;
 int battery = 0;
 
 void notify() {
-  // === Tombol Digital ===
-  if( Ps3.event.button_down.cross ) Serial.println("Started pressing the cross button");
-  if( Ps3.event.button_up.cross ) Serial.println("Released the cross button");
+  // Tombol-tombol biasa tetap
 
-  if( Ps3.event.button_down.square ) Serial.println("Started pressing the square button");
-  if( Ps3.event.button_up.square ) Serial.println("Released the square button");
-
-  if( Ps3.event.button_down.triangle ) Serial.println("Started pressing the triangle button");
-  if( Ps3.event.button_up.triangle ) Serial.println("Released the triangle button");
-
-  if( Ps3.event.button_down.circle ) Serial.println("Started pressing the circle button");
-  if( Ps3.event.button_up.circle ) Serial.println("Released the circle button");
-
-  if( Ps3.event.button_down.up ) Serial.println("Started pressing the up button");
-  if( Ps3.event.button_up.up ) Serial.println("Released the up button");
-
-  if( Ps3.event.button_down.down ) Serial.println("Started pressing the down button");
-  if( Ps3.event.button_up.down ) Serial.println("Released the down button");
-
-  if( Ps3.event.button_down.left ) Serial.println("Started pressing the left button");
-  if( Ps3.event.button_up.left ) Serial.println("Released the left button");
-
-  if( Ps3.event.button_down.right ) Serial.println("Started pressing the right button");
-  if( Ps3.event.button_up.right ) Serial.println("Released the right button");
-
-  if( Ps3.event.button_down.l1 ) Serial.println("Started pressing the left shoulder button");
-  if( Ps3.event.button_up.l1 ) Serial.println("Released the left shoulder button");
-
-  if( Ps3.event.button_down.r1 ) Serial.println("Started pressing the right shoulder button");
-  if( Ps3.event.button_up.r1 ) Serial.println("Released the right shoulder button");
-
-  if( Ps3.event.button_down.l2 ) Serial.println("Started pressing the left trigger button");
-  if( Ps3.event.button_up.l2 ) Serial.println("Released the left trigger button");
-
-  if( Ps3.event.button_down.r2 ) Serial.println("Started pressing the right trigger button");
-  if( Ps3.event.button_up.r2 ) Serial.println("Released the right trigger button");
-
-  if( Ps3.event.button_down.select ) Serial.println("Started pressing the select button");
-  if( Ps3.event.button_up.select ) Serial.println("Released the select button");
-
-  if( Ps3.event.button_down.start ) Serial.println("Started pressing the start button");
-  if( Ps3.event.button_up.start ) Serial.println("Released the start button");
-
-  if( Ps3.event.button_down.ps ) Serial.println("Started pressing the Playstation button");
-  if( Ps3.event.button_up.ps ) Serial.println("Released the Playstation button");
-
-  // === Kontrol Servo dengan Stick Kanan ===
+  // === Kontrol Servo 1 dengan Stick Kanan Horizontal ===
   if (abs(Ps3.event.analog_changed.stick.rx) > 2) {
     int angle = map(Ps3.data.analog.stick.rx, -128, 127, 0, 180);
     servo1.write(angle);
-    Serial.print("Servo Angle: "); Serial.println(angle);
+    Serial.print("Servo 1 Angle: "); Serial.println(angle);
+  }
+
+  // === Kontrol Servo 2 dengan Stick Kanan Vertikal ===
+  if (abs(Ps3.event.analog_changed.stick.ry) > 2) {
+    int angle = map(Ps3.data.analog.stick.ry, -128, 127, 0, 180);
+    servo2.write(angle);
+    Serial.print("Servo 2 Angle: "); Serial.println(angle);
   }
 
   // === Kontrol Motor DC dengan Stick Kiri ===
@@ -88,7 +55,7 @@ void notify() {
     Serial.print("Motor Speed: "); Serial.println(speed);
   }
 
-  // === Baca Posisi Stick ===
+  // Baca posisi stick
   if( abs(Ps3.event.analog_changed.stick.lx) + abs(Ps3.event.analog_changed.stick.ly) > 2 ) {
     Serial.print("Moved the left stick: x=");
     Serial.print(Ps3.data.analog.stick.lx);
@@ -102,7 +69,7 @@ void notify() {
     Serial.println(Ps3.data.analog.stick.ry);
   }
 
-  // === Status Baterai ===
+  // Status baterai tetap
   if( battery != Ps3.data.status.battery ) {
     battery = Ps3.data.status.battery;
     Serial.print("The controller battery is ");
@@ -124,15 +91,14 @@ void setup() {
   Serial.begin(115200);
 
   // Servo init
-  servo1.attach(servoPin);
+  servo1.attach(servoPin1);
+  servo2.attach(servoPin2);
 
   // Motor init
   pinMode(motor1Pin1, OUTPUT);
   pinMode(motor1Pin2, OUTPUT);
   pinMode(enable1Pin, OUTPUT);
-  ledcSetup(pwmChannel, freq, resolution);
-  ledcAttachPin(enable1Pin, pwmChannel);
-  ledcWrite(pwmChannel, dutyCycle);
+
 
   // PS3 init
   Ps3.attach(notify);
@@ -149,16 +115,6 @@ void loop() {
   player = (player + 1) % 10;
   delay(2000);
 
-  // Tambahan: Jalankan servo sweeping otomatis jika ingin
-  for(int posDegrees = 0; posDegrees <= 180; posDegrees++) {
-    servo1.write(posDegrees);
-    Serial.println(posDegrees);
-    delay(20);
-  }
+  // Tidak perlu sweeping servo di sini jika sudah pakai stick kontrol
+}
 
-  for(int posDegrees = 180; posDegrees >= 0; posDegrees--) {
-    servo1.write(posDegrees);
-    Serial.println(posDegrees);
-    delay(20);
-  }
-} 
